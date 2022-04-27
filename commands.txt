@@ -253,3 +253,10 @@ o se puede agregar dentro de package.json script:
 "build:watch": "webpack --watch --config webpack.config.js"
 
 -------------------------------------------Deploy a Netlify-------------------------------------------
+me creo una cuenta,
+Agrego netlify.toml asi toma la configuracion
+
+como las variables de entorno no lo pasamos sale error.
+se creo una carpeta de scripts y un create-env.js
+
+dentro de deploy settings en netlify le creamos una variable API con el link de la api
