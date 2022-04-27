@@ -1,0 +1,255 @@
+***** -D se pone para aclarar que es una dependencia de desarrollo
+
+------Instalar Webpack------------
+--npm install webpack webpack-cli -D
+
+-------------aplicar Webpack------------
+--npx webpack
+Compilas el codigo y te muestra en el main un modo mas descriptivo
+--npx webpack --mode development 
+Te lo compila limpio
+--npx webpack --mode production
+
+
+Cuando se usa el npx Webpack --mode production o development lo que hace es resumir todo nuestro codigo en el main.js de lo que habiamos hecho.
+
+Creamos un webpack.config.js y lo configuramos
+Ejecutamos lo siguiente para que use la configuracion
+--npx webpack --mode production --config webpack.config.js
+
+en package.json creamos un script para hacer build 
+"build": "webpack --mode production"
+"dev": "webpack --mode development"
+y lo corremos haciendo --npm run build o --npm run dev
+
+Vamos agregar babel a nuestro proyecto para que sea compatible con todos los navegadores
+--npm install babel-loader @babel/core @babel/preset-env @babel/plugin-transform-runtime -D
+
+babel-loader nos permite usar babel con webpack
+@babel/core es babel en general
+@babel/preset-env trae y te permite usar las ultimas características de JavaScript
+@babel/plugin-transform-runtime te permite trabajar con todo el tema de asincronismo como ser async y await
+
+Creamos un archivo llamado .babelrc para la configuracion. El . es para ocultarlos
+Luego agregamos en webpack.config.js un module
+
+creamos unas reglas, rules y agregamos todo lo siguiente
+/\.m?js$/ usar cualquier archivo que empiece con m y termine con js
+exclude: /node_modules/, // Exclude permite omitir archivos o carpetas especificas
+use:{loader: 'babel-loader'} // Use es un arreglo u objeto donde dices que loader aplicaras
+
+---------------------------------------HTML en Webpack---------------------------------------------------------------------------
+
+HtmlWebpackPlugin:
+Es un plugin para inyectar javascript, css, favicons, y nos facilita la tarea de enlazar los bundles a nuestro template HTML.
+npm install html-webpack-plugin -D
+
+Lo agregamos en el webpack.config.js -- 
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+
+y agregamos plugins
+plugins: [
+        new HtmlWebpackPlugin({
+            inject: true,
+            template: './public/index.html', 
+            filename: './index.html'
+        })
+    ]
+Template es para decir de donde lo toma, y filename el que va a generar dentro de Dist
+
+Vamos a index.html y borramos lo siguiente porque ya no lo necesitamos <script type="module" src="../src//index.js"></script>
+Ya no necesitamos que agarre los recursos de index.js porque hacemos que automaticamente webpack injecte el main.js que creamos
+---------------------------------------------------Loader CSS y pre procesador--------------------------------------------------------------------------------
+CSS:
+css-loader ⇒ Loader para reconocer CSS
+mini-css-extract-plugin ⇒ Extrae el CSS en archivos
+
+Para dar soporte a CSS en webpack debes instalar los siguientes paquetes
+npm install mini-css-extract-plugin css-loader -D
+
+borramos del index.html lo siguiente <link rel="stylesheet" href="../src/styles/main.css">, porque va a usar el css generado por webpack
+voy a src/index.js y agrego import './styles/main.css'; asi importamos los estilos
+
+Agregamos en webpack.config.js :
+const MiniCssExtractPlugin = require('mini-css-extract-plugin'); //Agregamos esto para usar el plugin de CSS
+en rules agregamos: {
+                test: /\.css$/i,
+                use: [MiniCssExtractPlugin.loader,
+                'css-loader'
+                ],
+            }
+en plugins: new MiniCssExtractPlugin(),
+
+Instalamos un pre procesador de CSS: npm install stylus stylus-loader -D
+modificamos en rules: {
+                test: /\.css|.styl$/i,
+                use: [MiniCssExtractPlugin.loader,
+                    'css-loader',
+                    'stylus-loader'
+                ],
+            }
+
+cree un archivo llamado src/styles/vars.styl y lo agregue dentro del src/index.js
+--------------------------------------------------------Loader Archivos----------------------------------------------------------------------------------------
+Copiar Archivos con Webpack hacia la carpeta dist:
+npm install copy-webpack-plugin -D
+
+webpack.config.js:
+const CopyPlugin = require('copy-webpack-plugin'); //Para poder copiar archivos
+
+en output:
+assetModuleFilename: 'assets/images/[hash][ext][query]'
+
+dentro de rules:
+{
+    test: /\.png/,
+    type: 'asset/resource'
+}
+
+new CopyPlugin({
+    patterns: [
+        {
+            from: path.resolve(__dirname, 'src', 'assets/images')//aca se encuentran los archivos que vamos a mover
+        }
+    ]
+})
+
+En template/template.js le sacamos a las rutas de img 
+y agregamos como variables: 
+import github from '../assets/images/github.png';
+import twitter from '../assets/images/twitter.png';
+import instagram from '../assets/images/instagram.png';
+
+<div class="card_social">
+    <a href="https://twitter.com/gndx">
+    <img src="${twitter}" />
+    </a>
+    <a href="https://github.com/gndx">
+    <img src="${github}" />
+    </a>
+    <a href="https://instagram.com/gndx">
+    <img src="${instagram}" />
+    </a>
+</div>
+
+-------------------------------------------------Loader Fuentes---------------------------------------------------------------------------
+
+En src/styles/main.css
+
+para reemplazar que lo descargue de la url, tenemos que descargar en formato woff y hacer lo siguiente.
+Borramos lo siguiente @import "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500";
+y agregamos:
+@font-face {
+	font-family: 'Ubuntu';
+	src: url('../assets/fonts/ubuntu-regular.woff2') format('woff2'),
+		url('../assets/fonts/ubuntu-regular.woff') format('woff');
+	font-weight: 400;	
+	font-style: normal;
+}
+
+Instalacion:
+npm install url-loader file-loader -D
+
+en Webpack.config.js:
+
+Rules:
+{
+    test: /\.(woff|woff2)$/,
+    type: 'asset/resource',
+    generator: {
+        filename: 'assets/fonts/name[ext]'
+    }
+}
+
+---------------------Optimización: hashes, compresión y minificación de archivos------------------------
+css-minimizer-webpack-plugin ⇒ Nos ayuda a comprimir nuestros archivos finales CSS
+terser-webpack-plugin ⇒ Permite minificar de una mejor forma
+
+Instalar.
+npm install css-minimizer-webpack-plugin terser-webpack-plugin -D
+
+Vamos a Webpack.config.js:
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+
+agregamos unos hash
+filename: '[name].[contenthash].js', //nombre del js donde va aplicar webpack  
+
+new MiniCssExtractPlugin({
+            filename: 'assets/[name].[contenthash].css'
+        }),
+
+esto es nuevo
+optimization:{
+        minimize: true,
+        minimizer: [
+            new CssMinimizerPlugin(),
+            new TerserPlugin(),
+        ]
+    }
+
+---------------------------------------------------Webpack Alias----------------------------------------
+
+Dentro de resolve:
+alias: {
+            '@utils': path.resolve(__dirname, 'src/utils/'),
+            '@templates': path.resolve(__dirname, 'src/templates/'),
+            '@styles': path.resolve(__dirname, 'src/styles/'),
+            '@images': path.resolve(__dirname, 'src/assets/images/') ,           
+        }
+
+--------------------------------------------Variables de entorno----------------------------------------
+Es importante considerar las variables de entorno va a ser un espacio seguro donde podemos guardar datos sensibles
+
+npm install dotenv-webpack -D
+
+creamos un archivo llamado .env - No se sube al repositorio!
+ creamos .env-example si se sube - es un template de las variables que tendria que tenes el .env
+
+webpack.config.js:
+ const Dotenv = require('dotenv-webpack');
+
+ plugins:
+ new Dotenv(),
+
+ Cambiamos src/utils/getData.js:
+ //const API = 'https://randomuser.me/api/';
+const API = process.env.API;
+
+-------------------------------------------WebPack en modo desarrollo----------------------------------
+creamos un archivo de configuracion de desarrollo
+
+creamos webpack.config.dev.js
+
+borramos optimization porque no lo necesitamos ahora, sino que queremos ver un informa mas detallado de como funciona las cosas
+
+le agregamos en module.exports:
+mode: 'development',
+
+cambiamos en package.json
+"dev": "webpack --mode development" ---> "dev": "webpack --config webpack.config.dev.js"
+
+------------------------------------------Webpack en modo producción-----------------------------------
+
+npm install clean-webpack-plugin -D
+
+En webpack.config.dev.js:
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
+plugins:
+new CleanWebpackPlugin(),
+
+en package.json
+"build": "webpack --mode production", ------>  "build": "webpack --mode production --config webpack.config.js",
+
+-------------------------------------------Webpack Watch----------------------------------------------
+Es para que observe si se hace un cambio y generar el webpack automatico
+
+webpack.config.dev.js
+agregamos en module exports
+watch: true,
+
+o se puede agregar dentro de package.json script:
+"build:watch": "webpack --watch --config webpack.config.js"
+
+-------------------------------------------Deploy a Netlify-------------------------------------------
